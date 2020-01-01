@@ -1,4 +1,4 @@
-package pm.s5.bgec.hw
+package pm.s5.bgec
 
 import chisel3._
 import chisel3.experimental.Analog

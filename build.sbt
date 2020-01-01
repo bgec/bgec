@@ -1,6 +1,6 @@
-lazy val hw = (project in file("hw")).settings(
-  organization := "pm.s5.bgec",
-  name := "bgec-hw",
+lazy val bgec = (project in file("bgec")).settings(
+  organization := "pm.s5",
+  name := "bgec",
   version := "0.1.0",
   scalaVersion := "2.11.12",
   resolvers ++= Seq(
