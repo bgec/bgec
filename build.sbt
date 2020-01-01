@@ -1,4 +1,4 @@
-lazy val bgec = (project in file("bgec")).settings(
+lazy val bgec = (project in file(".")).settings(
   organization := "pm.s5",
   name := "bgec",
   version := "0.1.0",
