@@ -26,13 +26,9 @@ class Controller extends Module {
     val inTriggerL = Input(UInt(8.W))
     val inTriggerR = Input(UInt(8.W))
     val outData = Output(UInt(64.W))
-
-    val cyclesPerMicrosecond = Input(UInt(8.W))
-    val serialize = Input(Bool())
-    val data = Output(UInt(1.W))
   })
 
-  io.outData := Cat(Seq(
+  io.outData := Cat(Seq( // TODO Map based on compile arguments
     false.B,
     false.B,
     false.B,
@@ -56,43 +52,5 @@ class Controller extends Module {
     io.inTriggerL,
     io.inTriggerR
   ))
-
-  val bitIndex = Reg(UInt(6.W))
-  val cycleCounter = Reg(UInt(8.W))
-  val microsecondCounter = Reg(UInt(2.W))
-  val serialize = Reg(Bool())
-
-  when(io.serialize) {
-    serialize := true.B
-  }
-
-  when(!serialize) {
-    io.data := 0.U
-    bitIndex := 0.U
-    cycleCounter := 0.U
-    microsecondCounter := 0.U
-  }.otherwise {
-    when(microsecondCounter === 0.U) {
-      io.data := 0.U
-    }.elsewhen((microsecondCounter === 1.U) || (microsecondCounter === 2.U)) {
-      io.data := io.outData(bitIndex)
-    }.otherwise {
-      io.data := 1.U
-    }
-    cycleCounter := cycleCounter + 1.U
-    when(cycleCounter === io.cyclesPerMicrosecond) {
-      cycleCounter := 0.U
-      when(microsecondCounter === 3.U) {
-        microsecondCounter := 0.U
-        when(bitIndex === 63.U) {
-          serialize := false.B
-        }.otherwise {
-          bitIndex := bitIndex + 1.U
-        }
-      }.otherwise {
-        microsecondCounter := microsecondCounter + 1.U
-      }
-    }
-  }
 
 }

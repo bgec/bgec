@@ -1,13 +1,10 @@
 package pm.s5.bgec
 
 import chisel3._
-import chisel3.experimental.Analog
-import chisel3.util._
 
 class Bgec extends Module {
 
   val controller = Module(new Controller)
-  val sdreader = Module(new SdReader)
   val io = IO(new Bundle {
     val inButtonStart = Input(Bool())
     val inButtonY = Input(Bool())
@@ -21,19 +18,58 @@ class Bgec extends Module {
     val inDpadDown = Input(Bool())
     val inDpadRight = Input(Bool())
     val inDpadLeft = Input(Bool())
-    val inJoystickX = Input(UInt(8.W))
-    val inJoystickY = Input(UInt(8.W))
-    val inCstickX = Input(UInt(8.W))
-    val inCstickY = Input(UInt(8.W))
-    val inTriggerL = Input(UInt(8.W))
-    val inTriggerR = Input(UInt(8.W))
 
-    val sdData = Analog(4.W)
-    val sdCmd = Analog(1.W)
+    val inJoystickXSerial = Input(Bool())
+    val inJoystickYSerial = Input(Bool())
+    val inCstickXSerial = Input(Bool())
+    val inCstickYSerial = Input(Bool())
+    val inTriggerLSerial = Input(Bool())
+    val inTriggerRSerial = Input(Bool())
+    val adcClock = Output(Bool())
+    val adcConvert = Output(Bool())
 
-    val inSerialize = Input(Bool()) // TODO read commands from data line
-    val data = Output(UInt(1.W)) // Analog(1.W) TODO figure out how to control a data line
+    val serialize = Input(Bool()) // TODO combine into single data line
+    val dataOut = Output(Bool())
   })
+
+  val clockParity = RegInit(Bool(), false.B)
+  val adcReady = RegInit(Bool(), false.B)
+  val adcTiming = RegInit(UInt(7.W), 0.U)
+  val adcBitIndex = Reg(UInt(3.W))
+
+  val joystickXBits = Reg(Vec(8, Bool()))
+  val joystickYBits = Reg(Vec(8, Bool()))
+  val cstickXBits = Reg(Vec(8, Bool()))
+  val cstickYBits = Reg(Vec(8, Bool()))
+  val triggerLBits = Reg(Vec(8, Bool()))
+  val triggerRBits = Reg(Vec(8, Bool()))
+
+  when(adcReady) {
+    when(clockParity) {
+      joystickXBits(adcBitIndex) := io.inJoystickXSerial
+      joystickYBits(adcBitIndex) := io.inJoystickYSerial
+      cstickXBits(adcBitIndex) := io.inCstickXSerial
+      cstickYBits(adcBitIndex) := io.inCstickYSerial
+      triggerLBits(adcBitIndex) := io.inTriggerLSerial
+      triggerRBits(adcBitIndex) := io.inTriggerRSerial
+      adcBitIndex := adcBitIndex + 1.U
+      when(adcBitIndex === 0.U) {
+        adcReady := false.B
+      }
+    }
+    clockParity := !clockParity
+    io.adcConvert := false.B
+    io.adcClock := clockParity
+  }.otherwise {
+    io.adcConvert := adcTiming < 7.U
+    io.adcClock := false.B
+    adcTiming := adcTiming + 1.U
+    when(adcTiming === 0.U) {
+      adcReady := true.B
+      adcBitIndex := 0.U
+      clockParity := false.B
+    }
+  }
 
   controller.io.inButtonA := io.inButtonA
   controller.io.inButtonB := io.inButtonB
@@ -47,19 +83,43 @@ class Bgec extends Module {
   controller.io.inDpadUp := io.inDpadUp
   controller.io.inDpadLeft := io.inDpadLeft
   controller.io.inDpadRight := io.inDpadRight
-  controller.io.inJoystickX := io.inJoystickX
-  controller.io.inJoystickY := io.inJoystickY
-  controller.io.inCstickX := io.inCstickX
-  controller.io.inCstickY := io.inCstickY
-  controller.io.inTriggerL := io.inTriggerL
-  controller.io.inTriggerR := io.inTriggerR
+  controller.io.inJoystickX := joystickXBits.asUInt()
+  controller.io.inJoystickY := joystickYBits.asUInt()
+  controller.io.inCstickX := cstickXBits.asUInt()
+  controller.io.inCstickY := cstickYBits.asUInt()
+  controller.io.inTriggerL := triggerLBits.asUInt()
+  controller.io.inTriggerR := triggerRBits.asUInt()
 
-  sdreader.clock := clock
-  sdreader.io.data <> io.sdData
-  sdreader.io.command <> io.sdCmd
+  val serializeIndex = Reg(UInt(6.W))
+  val microsecondCounter = Reg(UInt(2.W))
+  val cycleCounter = Reg(UInt(4.W))
+  val doSerialize = RegInit(Bool(), false.B)
 
-  controller.io.cyclesPerMicrosecond := 16.U
-  controller.io.serialize := io.inSerialize
-  io.data := controller.io.data
+  when(io.serialize && !doSerialize) {
+    serializeIndex := 0.U
+    microsecondCounter := 0.U
+    cycleCounter := 0.U
+    doSerialize := true.B
+  }
+
+  when(doSerialize) {
+    when(microsecondCounter === 0.U) {
+      io.dataOut := false.B
+    }.elsewhen(microsecondCounter === 3.U) {
+      io.dataOut := true.B
+    }.otherwise {
+      io.dataOut := controller.io.outData(serializeIndex)
+    }
+    cycleCounter := cycleCounter + 1.U
+    when(cycleCounter === 0.U) {
+      microsecondCounter := microsecondCounter + 1.U
+      when(microsecondCounter === 0.U) {
+        serializeIndex := serializeIndex + 1.U
+        when(serializeIndex === 0.U) {
+          doSerialize := false.B
+        }
+      }
+    }
+  }.otherwise(io.dataOut := false.B)
 
 }
