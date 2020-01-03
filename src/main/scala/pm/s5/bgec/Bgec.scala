@@ -90,12 +90,18 @@ class Bgec extends Module {
   controller.io.inTriggerL := triggerLBits.asUInt()
   controller.io.inTriggerR := triggerRBits.asUInt()
 
-  val controllerDataSerializer = Module(new Serializer(64))
+  val dataLine = Module(new DataLine)
+  dataLine.io.line <> io.data
 
-  controllerDataSerializer.io.data <> io.data
+  val controllerDataSerializer = Module(new Serializer(64))
   controllerDataSerializer.io.outputData := controller.io.outData
 
+  dataLine.io.write := controllerDataSerializer.io.write
+  dataLine.io.writeData := controllerDataSerializer.io.writeData
+
   val commandDeserializer = Module(new Deserializer(24))
+
+  commandDeserializer.io.readData := dataLine.io.readData
 
   when(reset.asBool()) {
     commandDeserializer.io.startDeserialization := true.B

@@ -7,19 +7,12 @@ import chisel3.util._
 class Deserializer(bits: Int) extends Module {
 
   val io = IO(new Bundle {
-    val data = Analog(1.W)
-
     val startDeserialization = Input(Bool())
+    val readData = Input(Bool())
 
     val inputData = Output(Vec(bits, Bool()))
     val bitsRead = Output(UInt(bits.W))
   })
-
-  val dataLine = Module(new DataLine)
-
-  dataLine.io.clock := clock
-
-  dataLine.io.line <> io.data
 
   val dataBuffer = Reg(Vec(bits, Bool()))
   val bitsReadReg = Reg(UInt(bits.W))

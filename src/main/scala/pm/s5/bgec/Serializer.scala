@@ -13,13 +13,10 @@ class Serializer(bits: Int) extends Module {
 
     val startSerialization = Input(Bool())
     val outputData = Input(UInt(bits.W))
+
+    val write = Output(Bool())
+    val writeData = Output(Bool())
   })
-
-  val dataLine = Module(new DataLine)
-
-  dataLine.io.clock := clock
-
-  dataLine.io.line <> io.data
 
   val serializeIndex = RegInit(UInt(indexLength.W), 0.U)
   val microsecondCounter = RegInit(UInt(2.W), 0.U)
@@ -31,13 +28,13 @@ class Serializer(bits: Int) extends Module {
   }
 
   when(serialize) {
-    dataLine.io.write := true.B
+    io.write := true.B
     when(microsecondCounter === 0.U) {
-      dataLine.io.writeData := false.B
+      io.writeData := false.B
     }.elsewhen(microsecondCounter === 3.U) {
-      dataLine.io.writeData := true.B
+      io.writeData := true.B
     }.otherwise {
-      dataLine.io.writeData := io.outputData(serializeIndex)
+      io.writeData := io.outputData(serializeIndex)
     }
     cycleCounter := cycleCounter + 1.U
     when(cycleCounter === 0.U) {
@@ -50,7 +47,8 @@ class Serializer(bits: Int) extends Module {
       }
     }
   }.otherwise {
-    dataLine.io.write := false.B
+    io.write := false.B
+    io.writeData := true.B
   }
 
 }

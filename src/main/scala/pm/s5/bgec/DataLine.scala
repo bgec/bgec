@@ -7,8 +7,6 @@ import chisel3.util._
 class DataLine extends BlackBox with HasBlackBoxResource {
 
   val io = IO(new Bundle {
-    val clock = Input(Clock())
-
     val line = Analog(1.W)
 
     val write = Input(Bool())

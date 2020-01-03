@@ -1,41 +1,3 @@
-module Serializer(
-  input   clock,
-  inout   io_data
-);
-  wire  dataLine_clock; // @[Serializer.scala 18:24]
-  wire  dataLine_write; // @[Serializer.scala 18:24]
-  wire  dataLine_writeData; // @[Serializer.scala 18:24]
-  wire  dataLine_readData; // @[Serializer.scala 18:24]
-  DataLine dataLine ( // @[Serializer.scala 18:24]
-    .clock(dataLine_clock),
-    .line(io_data),
-    .write(dataLine_write),
-    .writeData(dataLine_writeData),
-    .readData(dataLine_readData)
-  );
-  assign dataLine_clock = clock; // @[Serializer.scala 20:21]
-  assign dataLine_write = 1'h0; // @[Serializer.scala 34:23 Serializer.scala 53:23]
-  assign dataLine_writeData = 1'h0; // @[Serializer.scala 36:29 Serializer.scala 38:29 Serializer.scala 40:29]
-endmodule
-module Deserializer(
-  input   clock,
-  inout   io_data
-);
-  wire  dataLine_clock; // @[Deserializer.scala 18:24]
-  wire  dataLine_write; // @[Deserializer.scala 18:24]
-  wire  dataLine_writeData; // @[Deserializer.scala 18:24]
-  wire  dataLine_readData; // @[Deserializer.scala 18:24]
-  DataLine dataLine ( // @[Deserializer.scala 18:24]
-    .clock(dataLine_clock),
-    .line(io_data),
-    .write(dataLine_write),
-    .writeData(dataLine_writeData),
-    .readData(dataLine_readData)
-  );
-  assign dataLine_clock = clock; // @[Deserializer.scala 20:21]
-  assign dataLine_write = 1'h0;
-  assign dataLine_writeData = 1'h0;
-endmodule
 module Bgec(
   input   clock,
   input   reset,
@@ -61,9 +23,9 @@ module Bgec(
   output  io_adcConvert,
   inout   io_data
 );
-  wire  controllerDataSerializer_clock; // @[Bgec.scala 93:40]
-  wire  commandDeserializer_clock; // @[Bgec.scala 98:35]
-  wire  commandDeserializer_io_data; // @[Bgec.scala 98:35]
+  wire  dataLine_write; // @[Bgec.scala 93:24]
+  wire  dataLine_writeData; // @[Bgec.scala 93:24]
+  wire  dataLine_readData; // @[Bgec.scala 93:24]
   reg  clockParity; // @[Bgec.scala 35:28]
   reg [31:0] _RAND_0;
   reg  adcReady; // @[Bgec.scala 36:25]
@@ -79,13 +41,11 @@ module Bgec(
   wire [6:0] _T_6; // @[Bgec.scala 66:28]
   wire  _T_7; // @[Bgec.scala 67:20]
   wire  _GEN_99; // @[Bgec.scala 67:29]
-  Serializer controllerDataSerializer ( // @[Bgec.scala 93:40]
-    .clock(controllerDataSerializer_clock),
-    .io_data(io_data)
-  );
-  Deserializer commandDeserializer ( // @[Bgec.scala 98:35]
-    .clock(commandDeserializer_clock),
-    .io_data(commandDeserializer_io_data)
+  DataLine dataLine ( // @[Bgec.scala 93:24]
+    .line(io_data),
+    .write(dataLine_write),
+    .writeData(dataLine_writeData),
+    .readData(dataLine_readData)
   );
   assign _T_1 = adcBitIndex + 3'h1; // @[Bgec.scala 55:34]
   assign _T_2 = adcBitIndex == 3'h0; // @[Bgec.scala 56:24]
@@ -96,8 +56,8 @@ module Bgec(
   assign _GEN_99 = _T_7 | adcReady; // @[Bgec.scala 67:29]
   assign io_adcClock = adcReady & clockParity; // @[Bgec.scala 62:17 Bgec.scala 65:17]
   assign io_adcConvert = adcReady ? 1'h0 : _T_4; // @[Bgec.scala 61:19 Bgec.scala 64:19]
-  assign controllerDataSerializer_clock = clock;
-  assign commandDeserializer_clock = clock;
+  assign dataLine_write = 1'h0; // @[Bgec.scala 99:21]
+  assign dataLine_writeData = 1'h1; // @[Bgec.scala 100:25]
 `ifdef RANDOMIZE_GARBAGE_ASSIGN
 `define RANDOMIZE
 `endif
