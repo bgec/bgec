@@ -1,6 +1,7 @@
 package pm.s5.bgec
 
 import chisel3._
+import chisel3.experimental.Analog
 
 class Bgec extends Module {
 
@@ -28,8 +29,7 @@ class Bgec extends Module {
     val adcClock = Output(Bool())
     val adcConvert = Output(Bool())
 
-    val serialize = Input(Bool()) // TODO combine into single data line
-    val dataOut = Output(Bool())
+    val data = Analog(1.W)
   })
 
   val clockParity = RegInit(Bool(), false.B)
@@ -90,36 +90,32 @@ class Bgec extends Module {
   controller.io.inTriggerL := triggerLBits.asUInt()
   controller.io.inTriggerR := triggerRBits.asUInt()
 
-  val serializeIndex = Reg(UInt(6.W))
-  val microsecondCounter = Reg(UInt(2.W))
-  val cycleCounter = Reg(UInt(4.W))
-  val doSerialize = RegInit(Bool(), false.B)
+  val controllerDataSerializer = Module(new Serializer(64))
 
-  when(io.serialize && !doSerialize) {
-    serializeIndex := 0.U
-    microsecondCounter := 0.U
-    cycleCounter := 0.U
-    doSerialize := true.B
+  controllerDataSerializer.io.data <> io.data
+  controllerDataSerializer.io.outputData := controller.io.outData
+
+  val commandDeserializer = Module(new Deserializer(24))
+
+  when(reset.asBool()) {
+    commandDeserializer.io.startDeserialization := true.B
+  }.otherwise {
+    commandDeserializer.io.startDeserialization := false.B
   }
 
-  when(doSerialize) {
-    when(microsecondCounter === 0.U) {
-      io.dataOut := false.B
-    }.elsewhen(microsecondCounter === 3.U) {
-      io.dataOut := true.B
-    }.otherwise {
-      io.dataOut := controller.io.outData(serializeIndex)
-    }
-    cycleCounter := cycleCounter + 1.U
-    when(cycleCounter === 0.U) {
-      microsecondCounter := microsecondCounter + 1.U
-      when(microsecondCounter === 0.U) {
-        serializeIndex := serializeIndex + 1.U
-        when(serializeIndex === 0.U) {
-          doSerialize := false.B
-        }
-      }
-    }
-  }.otherwise(io.dataOut := false.B)
+  val requestSequence = "0100 0000 0000 0011 0000 0010".collect {
+    case '0' => false
+    case '1' => true
+  }.toVector
+
+  val toldToSerialize = RegInit(Bool(), false.B)
+
+  when(commandDeserializer.dataBufferEndsWith(requestSequence)) {
+    controllerDataSerializer.io.startSerialization := !toldToSerialize
+    toldToSerialize := true.B
+  }.otherwise {
+    controllerDataSerializer.io.startSerialization := false.B
+    toldToSerialize := false.B
+  }
 
 }

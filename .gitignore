@@ -872,3 +872,4 @@ MigrationBackup/
 
 *.anno.json
 *.fir
+firrtl_black_box_resource_files.f
