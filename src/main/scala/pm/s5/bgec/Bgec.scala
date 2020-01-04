@@ -123,5 +123,6 @@ class Bgec extends Module {
     controllerDataSerializer.io.startSerialization := false.B
     toldToSerialize := false.B
   }
+  commandDeserializer.io.pauseDeserialization := controllerDataSerializer.io.write
 
 }

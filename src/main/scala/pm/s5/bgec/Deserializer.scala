@@ -8,6 +8,7 @@ class Deserializer(bits: Int) extends Module {
 
   val io = IO(new Bundle {
     val startDeserialization = Input(Bool())
+    val pauseDeserialization = Input(Bool())
     val readData = Input(Bool())
 
     val inputData = Output(Vec(bits, Bool()))
@@ -25,8 +26,38 @@ class Deserializer(bits: Int) extends Module {
     (0 until bits).foreach(dataBuffer(_) := false.B)
   }
 
-  when(io.startDeserialization && !deserialize) {
-    // TODO align microsecondCounter
+  val guessingPhase = RegInit(Bool(), false.B)
+  val cyclesOfLow = RegInit(UInt(6.W), 0.U)
+  val cyclesOfHigh = RegInit(UInt(6.W), 0.U)
+
+  when(!io.pauseDeserialization) {
+    when((io.startDeserialization && !deserialize) || guessingPhase) {
+      when(io.startDeserialization) {
+        guessingPhase := true.B
+      }
+      when(io.readData) {
+        cyclesOfHigh := cyclesOfHigh + 1.U
+      }.otherwise {
+        cyclesOfLow := cyclesOfLow + 1.U
+        when((cyclesOfLow + cyclesOfHigh) > 56.U) {
+          shiftDataBuffer(cyclesOfHigh > cyclesOfLow)
+          guessingPhase := false.B
+          deserialize := true.B
+          microsecondCounter := 0.U
+          cycleCounter := 0.U
+        }
+      }
+    }
+
+    when(deserialize && !guessingPhase) {
+      cycleCounter := cycleCounter + 1.U
+      when(cycleCounter === 0.U) {
+        microsecondCounter := microsecondCounter + 1.U
+        when(microsecondCounter === 2.U) {
+          shiftDataBuffer(io.readData)
+        }
+      }
+    }
   }
 
   io.inputData := dataBuffer
