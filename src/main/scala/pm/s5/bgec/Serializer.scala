@@ -36,16 +36,16 @@ class Serializer(bits: Int) extends Module {
     }.otherwise {
       io.writeData := io.outputData(serializeIndex)
     }
-    cycleCounter := cycleCounter + 1.U
-    when(cycleCounter === 0.U) {
-      microsecondCounter := microsecondCounter + 1.U
-      when(microsecondCounter === 0.U) {
-        serializeIndex := serializeIndex + 1.U
-        when(serializeIndex === 0.U || serializeIndex >= bits.U) {
+    when(cycleCounter === 15.U) {
+      when(microsecondCounter === 3.U) {
+        when(serializeIndex >= (bits - 1).U) {
           serialize := false.B
         }
+        serializeIndex := serializeIndex + 1.U
       }
+      microsecondCounter := microsecondCounter + 1.U
     }
+    cycleCounter := cycleCounter + 1.U
   }.otherwise {
     io.write := false.B
     io.writeData := true.B

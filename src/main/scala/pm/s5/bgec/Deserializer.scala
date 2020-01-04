@@ -50,13 +50,13 @@ class Deserializer(bits: Int) extends Module {
     }
 
     when(deserialize && !guessingPhase) {
-      cycleCounter := cycleCounter + 1.U
-      when(cycleCounter === 0.U) {
-        microsecondCounter := microsecondCounter + 1.U
+      when(cycleCounter === 3.U) {
         when(microsecondCounter === 2.U) {
           shiftDataBuffer(io.readData)
         }
+        microsecondCounter := microsecondCounter + 1.U
       }
+      cycleCounter := cycleCounter + 1.U
     }
   }
 
@@ -64,17 +64,14 @@ class Deserializer(bits: Int) extends Module {
   io.bitsRead := bitsReadReg
 
   def shiftDataBuffer(newBit: Bool) = {
+    dataBuffer(bitsReadReg) := newBit
     bitsReadReg := bitsReadReg + 1.U
-    (0 until (bits - 1)).foreach { i =>
-      dataBuffer(i) := dataBuffer(i + 1)
-    }
-    dataBuffer(bits - 1) := newBit
   }
 
   def dataBufferEndsWith(sequence: Vector[Boolean]) = {
     sequence.zipWithIndex.map {
       case (bit, i) =>
-        val bufferBit = io.inputData(bits - sequence.size + i)
+        val bufferBit = io.inputData(((bits.U - sequence.size.U + i.U) + io.bitsRead) % bits.U)
         !(bufferBit ^ bit.B)
     }.foldLeft(true.B)(_ && _)
   }
