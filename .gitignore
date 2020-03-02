@@ -870,6 +870,5 @@ MigrationBackup/
 
 # End of https://www.gitignore.io/api/vim,sbt,scala,emacs,eclipse,intellij,jetbrains,intellij+all,intellij+iml,visualstudio,jetbrains+all,jetbrains+iml,visualstudiocode
 
-*.anno.json
-*.fir
-firrtl_black_box_resource_files.f
+!/dist/*
+!/dist/
