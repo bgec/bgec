@@ -2,7 +2,7 @@ lazy val bgec = (project in file("bgec")).settings(
   organization := "pm.s5",
   name := "bgec",
   version := "0.1.0",
-  scalaVersion := "2.12.10",
+  scalaVersion := "2.11.12",
   resolvers ++= Seq(
     Resolver.sonatypeRepo("snapshots"),
     Resolver.sonatypeRepo("releases"),
