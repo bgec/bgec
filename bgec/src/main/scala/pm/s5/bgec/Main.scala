@@ -7,7 +7,7 @@ import firrtl.FirrtlExecutionSuccess
 object Main {
 
   def main(args: Array[String]): Unit = {
-    Driver.execute(args, () => new Bgec)
+    Driver.execute(args :+ "--target-dir" :+ "dist", () => new Bgec)
   }
 
 }
